@@ -3,7 +3,6 @@ from rest_framework import serializers
 from .models import *
 
 class FacultySerializer(serializers.ModelSerializer):
-    acronym = serializers.CharField(read_only=True)
     
     class Meta:
         model = Faculty
@@ -12,9 +11,12 @@ class FacultySerializer(serializers.ModelSerializer):
             'name',
             'acronym'
         )
+        extra_kwargs = {
+            'acronym': {'required': False}
+        }
         
 class DepartmentSerializer(serializers.ModelSerializer):
-    faculty = serializers.CharField(read_only=True)
+    faculty = FacultySerializer()
     class Meta:
         model = Department
         fields = (
@@ -22,7 +24,32 @@ class DepartmentSerializer(serializers.ModelSerializer):
             'name',
             'faculty'
         )
+        extra_kwargs = {
+            'faculty' : {'required': False}
+        }
+        
+    def create(self, validated_data):
+        
+        get_faculty = validated_data.pop('faculty')
+        
+        faculty = Faculty.objects.get(name=get_faculty['name'])
+        return Department.objects.create(
+            faculty=faculty,
+            **validated_data
+        )
+        
+    def update(self, instance, validated_data):
+        
+        get_faculty = validated_data.pop('faculty', None)
+        faculty = Faculty.objects.get(name=get_faculty['name'])
+        
+        instance.faculty = faculty
+        for atrr, value in validated_data.items():
+            setattr(instance, atrr, value)
 
+        instance.save()
+        return instance
+        
 class LevelSerializer(serializers.ModelSerializer):
     
     class Meta:

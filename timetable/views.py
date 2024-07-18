@@ -28,7 +28,7 @@ class FacultyView(APIView):
         if serializer.is_valid(raise_exception=True):
             
             serializer.save()
-            return Response({"message": "Faculty added successfully"}, status=201)
+            return Response({"message": "Faculty added successfully", "data" : serializer.data}, status=201)
 
 class FacultyDetailView(APIView):
     
@@ -39,11 +39,21 @@ class FacultyDetailView(APIView):
             serializer = FacultySerializer(obj, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
-                return Response({"message": "Faculty updated successfully", "data":serializer.data}, status=200)
+                return Response({"message": "Faculty updated successfully", "id": id, "data":serializer.data}, status=200)
         
         except Faculty.DoesNotExist:
             return Response({"message": "Faculty does not exist"}, status=404)
-        
+    
+    def delete(self, request, id, *args, **kwargs):
+        try:
+            obj = Faculty.objects.get(id=id)
+            obj.delete()
+            return Response(
+                    {"message": "Faculty deleted successfully", "id": id},
+                    status=200)
+        except Faculty.DoesNotExist:
+            return Response({"message": "Faculty not found"}, status=404)
+    
         
 class DepartmentView(APIView):
     
@@ -64,8 +74,9 @@ class DepartmentView(APIView):
         serializer = DepartmentSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             
+            
             serializer.save()
-            return Response({"message": "Department added successfully"}, status=201)
+            return Response({"message": "Department added successfully", "data": serializer.data}, status=201)
 
 class DepartmentDetailView(APIView):
     
@@ -76,10 +87,20 @@ class DepartmentDetailView(APIView):
             serializer = DepartmentSerializer(obj, data=request.data, partial=True)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-                return Response({"message": "Department updated successfully", "data":serializer.data}, status=200)
+                return Response({"message": "Department updated successfully", "id": id, "data":serializer.data}, status=200)
         
         except Department.DoesNotExist:
             return Response({"message": "Department does not exist"}, status=404)
+    
+    def delete(self, request, id, *args, **kwargs):
+        try:
+            obj = Department.objects.get(id=id)
+            obj.delete()
+            return Response(
+                    {"message": "Department deleted successfully", "id": id},
+                    status=200)
+        except Department.DoesNotExist:
+            return Response({"message": "Department not found"}, status=404)
         
 class DayView(APIView):
     
