@@ -11,6 +11,13 @@ from rest_framework.views import APIView
 class FacultyView(APIView):
     
     def get(self, request, *args, **kwargs):
+        faculty = request.GET.get('faculty')
+        if faculty:
+            qs = Faculty.objects.filter(Q(name__icontains=faculty) |
+                                        Q(acronym__icontains=faculty))
+            qs_serializer = FacultySerializer(qs, many=True)
+            return Response(qs_serializer.data)
+        
         qs = Faculty.objects.all()
         
         qs_serializer = FacultySerializer(qs, many=True)
@@ -58,8 +65,15 @@ class FacultyDetailView(APIView):
 class DepartmentView(APIView):
     
     def get(self, request, *args, **kwargs):
-        qs = Department.objects.all()
+        department = request.GET.get('department')
+        if department:
+            qs = Department.objects.filter(Q(name__icontains=department) |
+                                           Q(faculty__name__icontains=department) |
+                                           Q(faculty__acronym__icontains=department))
+            qs_serializer = DepartmentSerializer(qs, many=True)
+            return Response(qs_serializer.data)
         
+        qs = Department.objects.all()
         qs_serializer = DepartmentSerializer(qs, many=True)
         return Response(qs_serializer.data)
     

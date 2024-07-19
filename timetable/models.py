@@ -60,8 +60,8 @@ class TimetableEntry(models.Model):
     instructor = models.CharField(max_length=200)
     room = models.CharField(max_length=200, null=True, blank=True)
     day = models.ForeignKey(Day, on_delete=models.CASCADE, null=True, blank=True)
-    start_time = models.CharField(max_length=50)
-    end_time = models.CharField(max_length=50)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
     

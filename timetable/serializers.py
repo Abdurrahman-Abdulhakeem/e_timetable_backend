@@ -16,7 +16,7 @@ class FacultySerializer(serializers.ModelSerializer):
         }
         
 class DepartmentSerializer(serializers.ModelSerializer):
-    faculty = FacultySerializer()
+    faculty = FacultySerializer(required=False)
     class Meta:
         model = Department
         fields = (
@@ -24,26 +24,23 @@ class DepartmentSerializer(serializers.ModelSerializer):
             'name',
             'faculty'
         )
-        extra_kwargs = {
-            'faculty' : {'required': False}
-        }
         
     def create(self, validated_data):
         
         get_faculty = validated_data.pop('faculty')
         
-        faculty = Faculty.objects.get(name=get_faculty['name'])
-        return Department.objects.create(
-            faculty=faculty,
-            **validated_data
-        )
+        if get_faculty:
+            faculty = Faculty.objects.get(name=get_faculty['name'])
+            validated_data['faculty'] = faculty
+        return Department.objects.create(**validated_data)
         
     def update(self, instance, validated_data):
         
         get_faculty = validated_data.pop('faculty', None)
-        faculty = Faculty.objects.get(name=get_faculty['name'])
         
-        instance.faculty = faculty
+        if get_faculty:
+            faculty = Faculty.objects.get(name=get_faculty['name'])
+            instance.faculty = faculty
         for atrr, value in validated_data.items():
             setattr(instance, atrr, value)
 
@@ -166,3 +163,18 @@ class TimetableEntrySerializer(serializers.ModelSerializer):
         
         instance.save()
         return instance
+    
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['start_time'] = instance.start_time.strftime('%I:%M %p')    
+        rep['end_time'] = instance.end_time.strftime('%I:%M %p')
+        return rep
+            
+    def to_internal_value(self, data):
+        data['start_time'] = self.parse_time(data['start_time'])
+        data['end_time'] = self.parse_time(data['end_time'])
+        return super().to_internal_value(data)
+    
+    def parse_time(self, value):
+        from datetime import datetime
+        return datetime.strptime(value, '%I:%M %p').time()
