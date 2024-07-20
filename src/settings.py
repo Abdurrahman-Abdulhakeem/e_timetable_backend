@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     
     # 3rd party apps
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
     
 ]
@@ -142,3 +143,19 @@ CORS_ALLOW_HEADER = ["*"]
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKEN": True,
+}
+
+REST_FRAMEWORK = {
+
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+    
+}
+

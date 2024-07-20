@@ -1,14 +1,72 @@
 from django.shortcuts import render
 from django.db.models import Q
+from django.contrib.auth.hashers import check_password
+from django.forms.models import model_to_dict
 
 from .models import *
 from .serializers import *
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework_simplejwt.tokens import RefreshToken
+
+class LoginView(APIView):
+    permission_classes = (AllowAny,)
+    
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username:
+            return Response({'message': 'Enter your username'}, status=400)
+        
+        elif not password:
+            return Response({'message': 'Enter your password'}, status=400)
+        
+        try:
+             user = User.objects.get(username__iexact=username)
+             
+             pswd_check = check_password(password, user.password)
+             
+             if not pswd_check:
+                 return Response({'message': "Invalid username or password"}, status=400)
+             
+             if not user.is_active:
+                 return Response({'message': "Account is not active, contact admin"}, status=400)
+             
+             
+                 
+             
+             refresh = RefreshToken.for_user(user)
+            
+             return Response({'message':
+                "Logged in successful",
+                'status':True,
+                'user': model_to_dict(user, ['id', 'username', 
+                                             'username',
+                                             ]),
+                'access': str(refresh.access_token),
+                'refresh': str(refresh)
+                
+                })
+             
+             
+        except User.DoesNotExist:
+            return Response({'message': 'User does not exist'}, status=404)
+
+class UserDetailView(APIView):
+    permission_classes = (IsAuthenticated, )
+    def get(self, request, *args, **kwargs):
+        
+        user = request.user
+        
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=200)
 
 # Create your views here.
 class FacultyView(APIView):
+    # permission_classes = (IsAuthenticated, )
     
     def get(self, request, *args, **kwargs):
         faculty = request.GET.get('faculty')
