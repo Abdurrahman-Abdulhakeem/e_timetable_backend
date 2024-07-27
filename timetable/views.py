@@ -34,12 +34,8 @@ class LoginView(APIView):
              
              if not user.is_active:
                  return Response({'message': "Account is not active, contact admin"}, status=400)
-             
-             
-                 
-             
+
              refresh = RefreshToken.for_user(user)
-            
              return Response({'message':
                 "Logged in successful",
                 'status':True,
@@ -49,12 +45,31 @@ class LoginView(APIView):
                 'access': str(refresh.access_token),
                 'refresh': str(refresh)
                 
-                })
-             
-             
+                })  
         except User.DoesNotExist:
             return Response({'message': 'User does not exist'}, status=404)
+        
+class RegisterView(APIView):
+    permission_classes = (AllowAny,)
 
+    def post(self, request, *args, **kwargs):
+        required_fields = ['email', 'username', 'password', 'fullname']
+        
+        for field in required_fields:
+            if field not in request.data:
+                return Response({"message": f"{field} is required"}, status=400)
+        
+        if User.objects.filter(email__iexact=request.data.get('email')).exists():
+            return Response({"message": "Email already exists"}, status=400)
+        if User.objects.filter(username__iexact=request.data.get('username')).exists():
+            return Response({"message": "Username already taken"}, status=400)
+        
+        RegisterSerializer = UserSerializer(data=request.data)
+        if RegisterSerializer.is_valid(raise_exception=True):
+            RegisterSerializer.save()
+            return Response({"message": "New admin added successfully", "data": RegisterSerializer.data}, status=201)
+        return Response({"message": "Error while registering"}, status=400)
+        
 class UserDetailView(APIView):
     permission_classes = (IsAuthenticated, )
     def get(self, request, *args, **kwargs):
@@ -63,8 +78,40 @@ class UserDetailView(APIView):
         
         serializer = UserSerializer(user)
         return Response(serializer.data, status=200)
+    
+class UsersView(APIView):
+    permission_classes = (IsAuthenticated, )
+    def get(self, request, *args, **kwargs):
+        
+        qs = User.objects.all()
+        
+        serializer = UserSerializer(qs, many=True)
+        return Response(serializer.data, status=200)
 
-# Create your views here.
+class UsersDetail(APIView):
+     def put(self, request, id, *args, **kwargs):
+        
+        try:
+            obj = User.objects.get(id=id)
+            serializer = UserSerializer(obj, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "User updated successfully", "id": id, "data":serializer.data}, status=200)
+        
+        except Faculty.DoesNotExist:
+            return Response({"message": "User does not exist"}, status=404)
+     
+     def delete(self, request, id, *args, **kwargs):
+        try:
+            obj = User.objects.get(id=id)
+            obj.delete()
+            return Response(
+                    {"message": "User deleted successfully", "id": id},
+                    status=200)
+        except User.DoesNotExist:
+            return Response({"message": "User not found"}, status=404)
+    
+
 class FacultyView(APIView):
     # permission_classes = (IsAuthenticated, )
     

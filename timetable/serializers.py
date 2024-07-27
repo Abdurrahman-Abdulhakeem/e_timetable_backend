@@ -6,7 +6,32 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = '__all__'
+        fields = (
+            'id',
+            'username',
+            'fullname',
+            'email',
+            'password'
+        )
+    
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            **validated_data
+            )
+        user.set_password(validated_data.get('password'))
+        return user
+    
+    def validate(self, obj):
+        errors = {}
+        if not obj.get("email").endswith(("@gmail.com", "@yahoo.com")):
+            errors['message'] = "We accept only valid email addresses"
+            raise serializers.ValidationError(errors)
+        
+        if ' ' not in obj.get('fullname').strip():
+            errors['message'] = "Fullname must contain a space separating first name and last name."
+            raise serializers.ValidationError(errors)
+        
+        return obj
 
 class FacultySerializer(serializers.ModelSerializer):
     
