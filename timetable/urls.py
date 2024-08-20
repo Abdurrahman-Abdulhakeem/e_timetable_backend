@@ -19,9 +19,15 @@ urlpatterns = [
     path('timetable/<int:id>/', TimetableDetailView.as_view()),
     
     path('days/', DayView.as_view()),
+    
     path('semesters/', SemesterView.as_view()),
+    path('semester/<int:id>/', SemesterDetailView.as_view()),
+        
     path('levels/', LevelView.as_view()),
+    path('level/<int:id>/', LevelDetailView.as_view()),
+    
     path('sessions/', SessionView.as_view()),
+    path('session/<int:id>/', SessionDetailView.as_view()),
     
     
     

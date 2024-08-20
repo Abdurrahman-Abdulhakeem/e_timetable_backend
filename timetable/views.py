@@ -50,7 +50,7 @@ class LoginView(APIView):
             return Response({'message': 'User does not exist'}, status=404)
         
 class RegisterView(APIView):
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated, )
 
     def post(self, request, *args, **kwargs):
         required_fields = ['email', 'username', 'password', 'fullname']
@@ -89,12 +89,15 @@ class UsersView(APIView):
         return Response(serializer.data, status=200)
 
 class UsersDetail(APIView):
+     permission_classes = (IsAuthenticated, )
      def put(self, request, id, *args, **kwargs):
         
         try:
             obj = User.objects.get(id=id)
             serializer = UserSerializer(obj, data=request.data, partial=True)
-            if serializer.is_valid():
+            if serializer.is_valid(raise_exception=True):
+                if obj.is_superuser and obj != request.user:
+                    return Response({"message": "Can't alter super user"}, status=400)
                 serializer.save()
                 return Response({"message": "User updated successfully", "id": id, "data":serializer.data}, status=200)
         
@@ -104,6 +107,8 @@ class UsersDetail(APIView):
      def delete(self, request, id, *args, **kwargs):
         try:
             obj = User.objects.get(id=id)
+            if obj.is_superuser and obj != request.user:
+                return Response({"message": "Can't delete super user"}, status=400)
             obj.delete()
             return Response(
                     {"message": "User deleted successfully", "id": id},
@@ -113,7 +118,7 @@ class UsersDetail(APIView):
     
 
 class FacultyView(APIView):
-    # permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticatedOrReadOnly, )
     
     def get(self, request, *args, **kwargs):
         faculty = request.GET.get('faculty')
@@ -143,13 +148,14 @@ class FacultyView(APIView):
             return Response({"message": "Faculty added successfully", "data" : serializer.data}, status=201)
 
 class FacultyDetailView(APIView):
+    permission_classes = (IsAuthenticated, )
     
     def put(self, request, id, *args, **kwargs):
         
         try:
             obj = Faculty.objects.get(id=id)
             serializer = FacultySerializer(obj, data=request.data, partial=True)
-            if serializer.is_valid():
+            if serializer.is_valid(raise_exception=True):
                 serializer.save()
                 return Response({"message": "Faculty updated successfully", "id": id, "data":serializer.data}, status=200)
         
@@ -168,6 +174,7 @@ class FacultyDetailView(APIView):
     
         
 class DepartmentView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly, )
     
     def get(self, request, *args, **kwargs):
         department = request.GET.get('department')
@@ -198,6 +205,7 @@ class DepartmentView(APIView):
             return Response({"message": "Department added successfully", "data": serializer.data}, status=201)
 
 class DepartmentDetailView(APIView):
+    permission_classes = (IsAuthenticated, )
     
     def put(self, request, id, *args, **kwargs):
         
@@ -222,6 +230,7 @@ class DepartmentDetailView(APIView):
             return Response({"message": "Department not found"}, status=404)
         
 class DayView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly, )
     
     def get(self, request, *args, **kwargs):
         qs = Day.objects.all()
@@ -230,31 +239,116 @@ class DayView(APIView):
         return Response(qs_serializer.data)    
         
 class SemesterView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly, )
     
     def get(self, request, *args, **kwargs):
         qs = Semester.objects.all()
         
         qs_serializer = SemesterSerializer(qs, many=True)
         return Response(qs_serializer.data)     
+    
+    
+    def post(self, request, *args, **kwargs):
+        
+        if not request.data.get('name'):
+            return Response({"message": "Semester name is required"}, status=400)
+
+        serializer = SemesterSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            
+            serializer.save()
+            return Response({"message": "Semester added successfully", "data" : serializer.data}, status=201)
+
+class SemesterDetailView(APIView):
+    permission_classes = (IsAuthenticated, )
+     
+    def delete(self, request, id, *args, **kwargs):
+        try:
+            obj = Semester.objects.get(id=id)
+            obj.delete()
+            return Response(
+                    {"message": "Semester deleted successfully", "id": id},
+                    status=200)
+        except Semester.DoesNotExist:
+            return Response({"message": "Semester not found"}, status=404)
+    
+    
        
 class LevelView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly, )
     
     def get(self, request, *args, **kwargs):
         qs = Level.objects.all()
         
         qs_serializer = LevelSerializer(qs, many=True)
         return Response(qs_serializer.data)  
+    
+    def post(self, request, *args, **kwargs):
+        
+        if not request.data.get('name'):
+            return Response({"message": "Level name is required"}, status=400)
+
+        serializer = LevelSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            
+            serializer.save()
+            return Response({"message": "Level added successfully", "data" : serializer.data}, status=201)
+
+class LevelDetailView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly, )
+    
+    def delete(self, request, id, *args, **kwargs):
+        try:
+            obj = Level.objects.get(id=id)
+            obj.delete()
+            return Response(
+                    {"message": "Level deleted successfully", "id": id},
+                    status=200)
+        except Level.DoesNotExist:
+            return Response({"message": "Level not found"}, status=404)
+    
+    
+    
           
 class SessionView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly, )
     
     def get(self, request, *args, **kwargs):
         qs = Session.objects.all()
         
         qs_serializer = SessionSerializer(qs, many=True)
-        return Response(qs_serializer.data)        
+        return Response(qs_serializer.data)  
+    
+    def post(self, request, *args, **kwargs):
+        
+        if not request.data.get('years_name'):
+            return Response({"message": "Session years is required"}, status=400)
+
+        serializer = SessionSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            
+            serializer.save()
+            return Response({"message": "Session added successfully", "data" : serializer.data}, status=201)
+
+class SessionDetailView(APIView):
+    permission_classes = (IsAuthenticated, )
+    
+    def delete(self, request, id, *args, **kwargs):
+        try:
+            obj = Session.objects.get(id=id)
+            obj.delete()
+            return Response(
+                    {"message": "Session deleted successfully", "id": id},
+                    status=200)
+        except Session.DoesNotExist:
+            return Response({"message": "Session not found"}, status=404)
+     
+    
+        
 
 
 class TimetableView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly, )
     
     def get(self, request, *args, **kwargs):
         
@@ -286,12 +380,14 @@ class TimetableView(APIView):
         
 
 class TimetableCreateView(APIView):
+    permission_classes = (IsAuthenticated, )
     
     def post(self, request, *args, **kwargs):
         data = request.data
+        # ADD COURSE AND INSTRUCTOR IN REQUIRED FIELDS LATER
         required_fields = [
-                'faculty', 'department', 'level', 'course', 'course_code',
-                'instructor', 'room', 'day', 'start_time', 'end_time', 'session', 'semester'
+                'faculty', 'department', 'level', 'course_code',
+                'room', 'day', 'start_time', 'end_time', 'session', 'semester'
             ]
 
             # Check if all required fields are present
@@ -324,6 +420,7 @@ class TimetableCreateView(APIView):
     
 
 class TimetableDetailView(APIView):
+    permission_classes = (IsAuthenticated, )
     
     def put(self, request, id, *args, **kwargs):
         
