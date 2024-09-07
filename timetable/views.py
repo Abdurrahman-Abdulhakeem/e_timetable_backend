@@ -373,7 +373,7 @@ class TimetableView(APIView):
                                            Q(department= 1) &
                                            Q(level= 1) &
                                            Q(session=session) &
-                                           Q(semester= 1))
+                                           Q(semester= 2))
         
         qs_serializer = TimetableEntrySerializer(qs, many=True)
         return Response(qs_serializer.data, status=200)
@@ -414,6 +414,44 @@ class TimetableCreateView(APIView):
         )
         serializer = TimetableEntrySerializer(data=data)
         if serializer.is_valid():
+            
+            start_time = serializer.validated_data['start_time']
+            end_time = serializer.validated_data['end_time']
+            
+            # Check for instructor conflict
+            instructor_conflict = TimetableEntry.objects.filter(
+                instructor=data['instructor'],
+                day=day,
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+                session=session,
+                semester=semester
+            ).exists()
+
+            if instructor_conflict:
+                return Response(
+                    {"message": "Instructor is already assigned to another class during this time."},
+                    status=400
+                )
+
+            # Check for room conflict
+            room_conflict = TimetableEntry.objects.filter(
+                room=data['room'],
+                day=day,
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+                session=session,
+                semester=semester
+            ).exists()
+
+            if room_conflict:
+                return Response(
+                    {"message": "The room is already occupied during this time."},
+                    status=400
+                )
+
+            # If no conflicts, save the entry
+            
             serializer.save()
             return Response({"message": "New entry timetable created", "data": serializer.data}, status=201)
         return Response(serializer.errors, status=400)
